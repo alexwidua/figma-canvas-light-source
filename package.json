@@ -2,6 +2,8 @@
 	"dependencies": {
 		"@create-figma-plugin/ui": "^1.8.2",
 		"@create-figma-plugin/utilities": "^1.8.2",
+		"chroma-js": "^2.1.2",
+		"d3-ease": "^3.0.1",
 		"preact": "^10"
 	},
 	"devDependencies": {

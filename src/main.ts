@@ -1,65 +1,149 @@
-import { once, showUI } from '@create-figma-plugin/utilities'
-import { radToDeg } from './utils/math'
+import {
+	once,
+	showUI,
+	getAbsolutePosition
+} from '@create-figma-plugin/utilities'
+
+import { clamp, normalize } from './utils/math'
+import { searchForIntersectingNode } from './utils/node'
+
+import { easeCubic, easeQuadOut, easeExpIn } from 'd3-ease'
+
+import chroma from 'chroma-js'
+
+const NUM_SHADOW_LAYERS = 8
+const TARGET_ELEMENT_ELEVATION = 0.5
 
 export default function () {
-	// Create ref for node
+	// Skip over invisible nodes and their descendants inside instances for faster performance
+	figma.skipInvisibleInstanceChildren = true
+
+	/**
+	 * Create node ref. This will be the node that casts the shadow.
+	 */
 	let selectionRef = undefined
 
-	// Create sun
+	/**
+	 * Create light source ("sun")
+	 */
 	const sun = figma.createEllipse()
 	sun.fills = [
 		{
 			type: 'SOLID',
-			color: { r: 1, g: 0.5, b: 0 }
+			color: { r: 1, g: 1, b: 1 }
 		}
 	]
 	sun.setPluginData('is-sun', 'TRUE')
 
+	/**
+	 * Update node casted shadow
+	 */
 	const updateShadows = (node) => {
 		if (!node) return
 
-		const nodePos = { x: node.x, y: node.y }
+		let useTintedShadow
+		const hasBackdrop = searchForIntersectingNode(figma.currentPage, node)
 
-		// 'Global sun'
-		const sunPos = { x: sun.x, y: sun.y }
+		if (hasBackdrop) {
+			const fill = hasBackdrop.fills[hasBackdrop.fills.length - 1]
 
-		// Get angle from sun to element
-		const angleRad = Math.atan2(nodePos.y - sunPos.y, nodePos.x - sunPos.x)
-		const angleDeg = radToDeg(angleRad)
+			if (fill) {
+				let hsl = chroma
+					.gl(fill.color.r, fill.color.g, fill.color.b)
+					.hsl()
+				// check if color has hue (ex. no white, grey, black)
+				if (!isNaN(hsl[0])) {
+					hsl[2] = 0.2 // decrease lightness
+					useTintedShadow = chroma.hsl(hsl[0], hsl[1], hsl[2]).gl()
+				}
+			}
+		}
 
-		// Get distance from sun to node
-		const distance = {
-			x: Math.abs(
-				sunPos.x + sun.width / 2 - (nodePos.x + node.width / 2)
-			),
-			y: Math.abs(
-				sunPos.y + sun.height / 2 - (nodePos.y + node.height / 2)
+		// Positions
+		// Get absolute position to avoid wrong angle when target node is within frame
+		const nodeAbs = getAbsolutePosition(node)
+		const sunAbs = getAbsolutePosition(sun)
+
+		const nodePos = {
+			x: nodeAbs.x + node.width / 2,
+			y: nodeAbs.y + node.height / 2
+		}
+		const sunPos = {
+			x: sunAbs.x + sun.width / 2,
+			y: sunAbs.y + sun.height / 2
+		}
+
+		// Angle between light source ⟷ node
+		const angleBetweenLightAndNode = Math.atan2(
+			nodePos.y - sunPos.y,
+			nodePos.x - sunPos.x
+		)
+
+		// Distance between light source ⟷ node
+		const p1 = sunPos.x - nodePos.x
+		const p2 = sunPos.y - nodePos.y
+		const distance = Math.sqrt(p1 * p1 + p2 * p2)
+
+		// Blur shadow the further away the light source is
+		const blurShadowWithDistance = clamp(distance / 100, 0.8, 5)
+
+		// Calculate relative scale between sun ⟷ node
+		// We do this to blur the shadow if the light source is relatively massive
+		const lightSurface = (sun.width / 2) * (sun.width / 2) * Math.PI
+		const nodeSurface = node.height * node.width
+		const relativeScaleBetweenLightAndNode = clamp(
+			(lightSurface * 100) / nodeSurface / 100,
+			0.8,
+			100
+		)
+
+		// Create shadows
+		const shadows = Array.from({ length: NUM_SHADOW_LAYERS }, (_, i) => {
+			const normalizedStep = easeQuadOut(
+				normalize(i, NUM_SHADOW_LAYERS, 0)
 			)
-		}
 
-		const shadow: DropShadowEffect = {
-			type: 'DROP_SHADOW',
-			color: { r: 0, g: 0, b: 0, a: 1 },
-			offset: {
-				x: Math.cos(angleRad) * distance.x,
-				y: Math.sin(angleRad) * distance.y
-			},
-			radius: 24,
-			spread: 24,
-			visible: true,
-			blendMode: 'NORMAL'
-		}
+			const shadow: DropShadowEffect = {
+				type: 'DROP_SHADOW',
+				color: useTintedShadow
+					? {
+							r: useTintedShadow[0],
+							g: useTintedShadow[1],
+							b: useTintedShadow[2],
+							a: 0.5 - 0.5 * normalizedStep
+					  }
+					: { r: 0, g: 0, b: 0, a: 0.5 - 0.5 * normalizedStep },
+				offset: {
+					x:
+						Math.cos(angleBetweenLightAndNode) *
+						(distance * normalizedStep * TARGET_ELEMENT_ELEVATION),
+					y:
+						Math.sin(angleBetweenLightAndNode) *
+						(distance * normalizedStep * TARGET_ELEMENT_ELEVATION)
+				},
+				radius:
+					100 *
+					relativeScaleBetweenLightAndNode *
+					blurShadowWithDistance *
+					normalizedStep,
+				spread: 0,
+				visible: true,
+				blendMode: 'NORMAL'
+			}
+			return shadow
+		})
 
-		node.effects = [shadow]
+		node.effects = shadows
 	}
 
+	/**
+	 * Handle selection change
+	 */
 	const handleSelectionChange = () => {
 		const node = figma.currentPage.selection[0]
 		if (node && !node?.getPluginData('is-sun')) {
 			selectionRef = node
-			console.log('Created ref')
 		}
-
 		if (!selectionRef) return
 		updateShadows(selectionRef)
 	}
