@@ -1,29 +1,49 @@
 .grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	grid-gap: 0.5rem;
+	grid-template-columns: 1rem 1fr 1fr 1fr;
+	grid-gap: 0.75rem;
 }
 
-.input {
+.grid div {
+	padding: 0.125rem;
+}
+
+.muted {
+	opacity: 0.5;
+}
+
+.flex {
 	display: flex;
-	align-items: center;
-	justify-content: space-around;
-	padding: 0.5rem;
-	border-radius: 4px;
-	border: 1px solid #eee;
-	width: 100%;
 }
 
-.input div:first-child {
-	margin-right: 1rem;
+.flex div:first-child {
+	margin-right: 0.5rem;
 }
 
 .color {
 	display: flex;
+	grid-column: 1 / span 2;
 }
+
 .badge {
 	width: 1rem;
 	height: 1rem;
 	display: block;
-	margin-right: 1rem;
+	margin-right: 0.75rem;
+	border-radius: 2px;
+}
+
+/* Show visual cue if value changes */
+.value {
+	animation-name: highlight;
+	animation-duration: 1s;
+}
+
+@keyframes highlight {
+	0% {
+		background: rgba(185, 222, 253, 0);
+	}
+	100% {
+		background: rgba(185, 222, 253, 0);
+	}
 }

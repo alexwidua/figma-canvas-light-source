@@ -4,10 +4,10 @@ import {
 	showUI,
 	getAbsolutePosition
 } from '@create-figma-plugin/utilities'
-import { easeCubic, easeQuadOut, easeExpIn } from 'd3-ease'
+import { easeQuadOut } from 'd3-ease'
 import chroma from 'chroma-js'
-import { clamp, normalize } from './utils/math'
 import { searchForIntersectingNode } from './utils/node'
+import { clamp, normalize } from './utils/math'
 
 const NUM_SHADOW_LAYERS = 8
 const TARGET_ELEMENT_ELEVATION = 0.5
@@ -31,6 +31,8 @@ export default function () {
 			color: { r: 1, g: 1, b: 1 }
 		}
 	]
+	sun.strokes = [{ type: 'SOLID', color: { r: 0.21, g: 0.67, b: 0.98 } }]
+	sun.strokeWeight = 4
 	sun.setPluginData('is-sun', 'TRUE')
 
 	/**
@@ -57,8 +59,6 @@ export default function () {
 			}
 		}
 
-		// Positions
-		// Get absolute position to avoid wrong angle when target node is within frame
 		const nodeAbs = getAbsolutePosition(node)
 		const sunAbs = getAbsolutePosition(sun)
 
@@ -193,6 +193,6 @@ export default function () {
 
 	showUI({
 		width: 240,
-		height: 137
+		height: 112
 	})
 }

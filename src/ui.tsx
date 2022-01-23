@@ -1,23 +1,21 @@
-import {
-	Button,
-	Columns,
-	Container,
-	render,
-	Text,
-	TextboxNumeric,
-	VerticalSpace
-} from '@create-figma-plugin/ui'
+import { render, Container, VerticalSpace, Text } from '@create-figma-plugin/ui'
 import { on, emit } from '@create-figma-plugin/utilities'
 import { h } from 'preact'
 import { useCallback, useState, useEffect } from 'preact/hooks'
-
-import { CloseHandler, CreateRectanglesHandler } from './types'
-
-import styles from './styles.css'
 import chroma from 'chroma-js'
+import styles from './styles.css'
 
 const Plugin = () => {
-	const [values, setValues] = useState({ x: 10, y: 10, blur: 100, spread: 0 })
+	const [values, setValues] = useState({
+		x: 0,
+		y: 0,
+		blur: 0,
+		spread: 0,
+		r: 0,
+		g: 0,
+		b: 0,
+		opacity: 0
+	})
 
 	const handleValueUpdate = useCallback((data) => {
 		setValues(data)
@@ -29,33 +27,39 @@ const Plugin = () => {
 
 	const color = chroma.gl(values.r, values.g, values.b).hex()
 
-	console.log(color)
-
 	return (
 		<Container>
-			<VerticalSpace space='large' />
+			<VerticalSpace space="small" />
 			<div class={styles.grid}>
-				<FauxInput value={values.x}>X</FauxInput>
-				<FauxInput value={values.blur}>Blur</FauxInput>
-				<FauxInput value={values.y}>Y</FauxInput>
-				<FauxInput value={values.spread}>Spread</FauxInput>
+				<div class={styles.muted}>X</div>
+				<div class={styles.value} key={values.x}>
+					{Math.round(values.x)}
+				</div>
+				<div class={styles.muted}>Blur</div>
+				<div class={styles.value} key={values.blur}>
+					{Math.round(values.blur)}
+				</div>
+				<div class={styles.muted}>Y</div>
+				<div class={styles.value} key={values.y}>
+					{Math.round(values.y)}
+				</div>
+				<div class={styles.muted}>Spread</div>
+				<div class={styles.value}>{values.spread}</div>
 				<div class={styles.color}>
 					<span class={styles.badge} style={{ background: color }} />
-					{color || '#000000'}
+					<span
+						class={styles.value}
+						key={values.r + values.g + values.b}>
+						{color.substring(1) || '000000'}
+					</span>
 				</div>
-				<div>{values.opacity * 100}%</div>
+				<div class={styles.value} key={values.opacity}>
+					{(values.opacity * 100).toFixed(2)}%
+				</div>
 			</div>
-			<VerticalSpace space='small' />
-		</Container>
-	)
-}
 
-const FauxInput = ({ value, children }) => {
-	return (
-		<div class={styles.input}>
-			<Text muted>{children}</Text>
-			{value.toFixed(2)}
-		</div>
+			<VerticalSpace space="small" />
+		</Container>
 	)
 }
 
