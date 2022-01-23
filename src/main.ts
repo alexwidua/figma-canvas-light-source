@@ -1,15 +1,13 @@
 import {
 	once,
+	emit,
 	showUI,
 	getAbsolutePosition
 } from '@create-figma-plugin/utilities'
-
+import { easeCubic, easeQuadOut, easeExpIn } from 'd3-ease'
+import chroma from 'chroma-js'
 import { clamp, normalize } from './utils/math'
 import { searchForIntersectingNode } from './utils/node'
-
-import { easeCubic, easeQuadOut, easeExpIn } from 'd3-ease'
-
-import chroma from 'chroma-js'
 
 const NUM_SHADOW_LAYERS = 8
 const TARGET_ELEMENT_ELEVATION = 0.5
@@ -134,6 +132,40 @@ export default function () {
 		})
 
 		node.effects = shadows
+
+		// Get an average shadow value to display in the UI windows
+		// For demo purposes only
+		const sumOfAllShadowValues = shadows.reduce(
+			(prev, curr) => {
+				return {
+					x: prev.x + curr.offset.x,
+					y: prev.y + curr.offset.y,
+					blur: prev.blur + curr.radius,
+					spread: prev.spread + curr.spread,
+					r: prev.r + curr.color.r,
+					g: prev.g + curr.color.g,
+					b: prev.b + curr.color.b,
+					opacity: prev.opacity + curr.color.a
+				}
+			},
+			{
+				x: 0,
+				y: 0,
+				blur: 0,
+				spread: 0,
+				r: 0,
+				g: 0,
+				b: 0,
+				opacity: 1
+			}
+		)
+		// Divide sum by num of layers to get average
+		Object.keys(sumOfAllShadowValues).forEach(
+			(el) =>
+				(sumOfAllShadowValues[el] =
+					sumOfAllShadowValues[el] / NUM_SHADOW_LAYERS)
+		)
+		emit('VALUE_UPDATE', sumOfAllShadowValues)
 	}
 
 	/**
