@@ -20,8 +20,8 @@
 		"editorType": [
 			"figma"
 		],
-		"id": "cast-shadow",
-		"name": "Cast Shadow",
+		"id": "figma-canvas-light-source",
+		"name": "Light Source",
 		"main": "src/main.ts",
 		"ui": "src/ui.tsx"
 	}

@@ -6,7 +6,7 @@ import {
 } from '@create-figma-plugin/utilities'
 import { easeQuadOut } from 'd3-ease'
 import chroma from 'chroma-js'
-import { searchForIntersectingNode } from './utils/node'
+import { searchForEnclosingNode } from './utils/node'
 import { clamp, normalize } from './utils/math'
 
 const NUM_SHADOW_LAYERS = 8
@@ -24,7 +24,9 @@ export default function () {
 	/**
 	 * Create light source ("sun")
 	 */
-	const sun = figma.createEllipse()
+	const sun = figma.createFrame()
+	sun.name = 'Light source'
+	sun.cornerRadius = 400
 	sun.fills = [
 		{
 			type: 'SOLID',
@@ -42,7 +44,7 @@ export default function () {
 		if (!node) return
 
 		let useTintedShadow
-		const hasBackdrop = searchForIntersectingNode(figma.currentPage, node)
+		const hasBackdrop = searchForEnclosingNode(figma.currentPage, node)
 
 		if (hasBackdrop) {
 			const fill = hasBackdrop.fills[hasBackdrop.fills.length - 1]
